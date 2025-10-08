@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chuyển Đổi File - Website của Mạnh</title>
+    <!-- Thêm favicon để nhất quán với trang chính -->
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+    <style>
+        /* Hiệu ứng lá rơi (rút gọn: giữ 10 lá, animation cơ bản từ CodePen) */
+        #leaves { position: relative; top: -50px; width: 100%; text-align: right; }
+        #leaves i {
+            display: inline-block; width: 200px; height: 150px;
+            background: linear-gradient(to bottom right, #309900, #005600);
+            transform: skew(20deg); border-radius: 5% 40% 70%;
+            box-shadow: inset 0px 0px 1px #222; border: 1px solid #333;
+            z-index: 1; -webkit-animation: falling 5s 0s infinite;
+        }
+        #leaves i:nth-of-type(2n) { -webkit-animation: falling2 5s 0s infinite; }
+        #leaves i:nth-of-type(3n) { -webkit-animation: falling3 5s 0s infinite; }
+        #leaves i:before {
+            position: absolute; content: ''; top: 117px; right: 9px; height: 27px; width: 32px;
+            transform: rotate(49deg); border-radius: 0% 15% 15% 0%;
+            border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 0px solid #222; border-right: 1px solid #222;
+            background: linear-gradient(to right, rgba(0,100,0,1), #005600); z-index: 1;
+        }
+        #leaves i:after {
+            content: ''; height: 125px; width: 10px; background: linear-gradient(to right, rgba(0,0,0,.15), rgba(0,0,0,0));
+            display: block; transform: rotate(125deg); position: absolute; left: 85px; border-radius: 50%;
+        }
+        /* Kích thước lá nhỏ gọn */
+        #leaves i:nth-of-type(n) { height: 23px; width: 30px; }
+        #leaves i:nth-of-type(n):before { width: 7px; height: 5px; top: 17px; right: 1px; }
+        #leaves i:nth-of-type(n):after { width: 2px; height: 17px; left: 12px; top: 0px; }
+        #leaves i:nth-of-type(2n+1) { height: 11px; width: 16px; }
+        #leaves i:nth-of-type(2n+1):before { width: 4px; height: 3px; top: 7px; right: 0px; }
+        #leaves i:nth-of-type(2n+1):after { width: 2px; height: 6px; left: 5px; top: 1px; }
+        #leaves i:nth-of-type(3n+2) { height: 17px; width: 23px; }
+        #leaves i:nth-of-type(3n+2):before { height: 4px; width: 4px; top: 12px; right: 1px; }
+        #leaves i:nth-of-type(3n+2):after { height: 10px; width: 2px; top: 1px; left: 8px; }
+        /* Delay animation rút gọn (chỉ 5-6 mức) */
+        #leaves i:nth-of-type(n) { -webkit-animation-delay: 1.9s; }
+        #leaves i:nth-of-type(2n) { -webkit-animation-delay: 3.9s; }
+        #leaves i:nth-of-type(3n) { -webkit-animation-delay: 2.3s; }
+        #leaves i:nth-of-type(4n) { -webkit-animation-delay: 4.4s; }
+        #leaves i:nth-of-type(5n) { -webkit-animation-delay: 5s; }
+        #leaves i:nth-of-type(6n) { -webkit-animation-delay: 3.5s; }
+        /* Màu lá và opacity */
+        #leaves i:nth-of-type(n) { background: linear-gradient(to bottom right, #309900, #005600); opacity: .7; transform: rotate(180deg); }
+        #leaves i:nth-of-type(2n+2) { background: linear-gradient(to bottom right, #5e9900, #2b5600); }
+        #leaves i:nth-of-type(4n+1) { background: linear-gradient(to bottom right, #990, #564500); }
+        #leaves i:nth-of-type(3n+1) { opacity: .5; }
+        #leaves i:nth-of-type(3n+2) { opacity: .3; }
+        #leaves i:nth-of-type(n) { -webkit-animation-timing-function: ease-in-out; }
+        /* Keyframes animation lá rơi */
+        @-webkit-keyframes falling { 0% { -webkit-transform: translate3d(300,0,0) rotate(0deg); } 100% { -webkit-transform: translate3d(-350px,700px,0) rotate(90deg); opacity: 0; } }
+        @-webkit-keyframes falling3 { 0% { -webkit-transform: translate3d(0,0,0) rotate(-20deg); } 100% { -webkit-transform: translate3d(-230px,640px,0) rotate(-70deg); opacity: 0; } }
+        @-webkit-keyframes falling2 { 0% { -webkit-transform: translate3d(0,0,0) rotate(90deg); } 100% { -webkit-transform: translate3d(-400px,680px,0) rotate(0deg); opacity: 0; } }
+
+        /* Reset và style chung (khớp với trang chính) */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; line-height: 1.6; color: #333; background: #fdfdfd; }
+        header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 2rem 5%; text-align: center; position: relative; }
+        header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        header p { font-size: 1.2rem; opacity: 0.9; }
+        nav { display: flex; justify-content: center; gap: 2rem; margin: 1rem 0; position: relative; }
+        nav a { text-decoration: none; color: white; font-weight: 500; transition: 0.3s; cursor: pointer; user-select: none; }
+        nav a:hover { color: #ffe082; }
+        /* Dropdown menu (giữ nguyên logic từ trang chính) */
+        .dropdown { position: relative; }
+        .dropdown-menu {
+            position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+            background: white; color: #333; border-radius: 8px; box-shadow: 0 6px 12px rgba(0,0,0,0.15); min-width: 180px;
+            max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.4s ease, opacity 0.4s ease;
+            display: flex; flex-direction: column; z-index: 1000; pointer-events: none;
+        }
+        .dropdown-menu.show { max-height: 500px; opacity: 1; pointer-events: auto; }
+        .dropdown-menu a { padding: 0.8rem 1.2rem; text-decoration: none; color: #333; border-bottom: 1px solid #eee; transition: background 0.2s; }
+        .dropdown-menu a:last-child { border-bottom: none; }
+        .dropdown-menu a:hover { background: #f0f0f0; color: #667eea; }
+        section { padding: 3rem 10%; text-align: center; }
+        .btn { display: inline-block; padding: 0.8rem 1.5rem; margin-top: 1rem; background: #667eea; color: white; border-radius: 8px; text-decoration: none; transition: 0.3s; cursor: pointer; border: none; }
+        .btn:hover { background: #764ba2; }
+        footer { background: #333; color: #fff; text-align: center; padding: 1.5rem; margin-top: 3rem; }
+
+        /* Style riêng cho converter (form đẹp, responsive) */
+        .converter-container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 8px 20px rgba(102, 126, 234, 0.1); padding: 2rem; text-align: left; }
+        .converter-container h2 { color: #667eea; margin-bottom: 1rem; text-align: center; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; font-weight: 500; color: #333; margin-bottom: 0.5rem; }
+        .form-group input[type="file"], .form-group select { width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px; transition: border-color 0.3s; }
+        .form-group input[type="file"]:hover, .form-group select:hover { border-color: #667eea; }
+        .conversion-type { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+        .type-option { padding: 1rem; background: #f8f9ff; border-radius: 8px; border: 2px solid #e0e0e0; cursor: pointer; transition: all 0.3s; text-align: center; }
+        .type-option:hover, .type-option.selected { background: #667eea; color: white; border-color: #764ba2; }
+        .progress { display: none; width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; margin: 1rem 0; overflow: hidden; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); width: 0%; transition: width 0.3s; }
+        .result { margin-top: 1rem; padding: 1rem; background: #f0f8ff; border-radius: 8px; display: none; }
+        .result.success { border-left: 4px solid #667eea; }
+        .download-link { display: inline-block; margin-top: 0.5rem; padding: 0.5rem 1rem; background: #764ba2; color: white; text-decoration: none; border-radius: 6px; }
+
+        /* Responsive cho mobile */
+        @media (max-width: 768px) { .conversion-type { grid-template-columns: 1fr; } section { padding: 2rem 5%; } }
+    </style>
+</head>
+<body>
+    <!-- Header với lá rơi (giống trang chính) -->
+    <header>
+        <div id="leaves">
+            <!-- Rút gọn: 10 lá để load nhanh -->
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <h1>Chuyển Đổi File 🚀</h1>
+        <p>Chuyển đổi định dạng file dễ dàng và nhanh chóng</p>
+        <nav>
+            <a href="https://manhcao108.github.io/webMC/">Trang chủ</a>
+            <div class="dropdown">
+                <a id="features-nav">Tính năng ▾</a>
+                <div class="dropdown-menu" id="features-menu">
+                    <a href="#" data-feature="create-qr">🔗 Tạo QR</a>
+                    <a href="#" data-feature="falling-image">🌧️ Ảnh rơi</a>
+                    <a href="#" data-feature="fast">⚡ Nhanh & Mượt</a>
+                    <a href="#" data-feature="responsive">📱 Responsive</a>
+                    <a href="#" data-feature="modern-design">🎨 Thiết kế hiện đại</a>
+                    <!-- Mục hiện tại: Chuyển đổi file (để nhất quán) -->
+                    <a href="#" data-feature="converter">🔄 Chuyển đổi file</a>
+                </div>
+            </div>
+            <a href="https://manhcao108.github.io/lienhe/" target="_blank">Liên hệ</a>
+        </nav>
+        <button class="btn" onclick="scrollToConverter()">Bắt đầu chuyển đổi</button>
+    </header>
+
+    <!-- Section converter chính -->
+    <section id="converter">
+        <div class="converter-container">
+            <h2>🔄 Công cụ Chuyển Đổi File</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 2rem;">Hỗ trợ JPG ↔ PNG, MP4 ↔ GIF, PDF ↔ DOC. Upload file và chọn loại chuyển đổi. (Demo: Chuyển đổi giả lập)</p>
+            
+            <form id="converterForm">
+                <div class="form-group">
+                    <label for="fileInput">Chọn file:</label>
+                    <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.mp4,.gif,.pdf,.doc,.docx" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Chọn loại chuyển đổi:</label>
+                    <div class="conversion-type">
+                        <div class="type-option" data-type="jpg-png">JPG ↔ PNG</div>
+                        <div class="type-option" data-type="mp4-gif">MP4 ↔ GIF</div>
+                        <div class="type-option" data-type="pdf-doc">PDF ↔ DOC</div>
+                    </div>
+                    <input type="hidden" id="selectedType" value="">
+                </div>
+                
+                <button type="submit" class="btn" style="width: 100%; font-size: 1.1rem;">Chuyển Đổi Ngay</button>
+            </form>
+            
+            <div class="progress">
+                <div class="progress-bar"></div>
+            </div>
+            
+            <div id="result" class="result">
+                <!-- Kết quả sẽ hiển thị ở đây -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer (giống trang chính) -->
+    <footer>
+        <p>© 2025 - Website Demo bởi Mạnh Cao</p>
+    </footer>
+
+    <script>
+        <!-- JS cho dropdown (giống trang chính, nhưng đơn giản hóa vì trang này tập trung converter) -->
+        const featuresNav = document.getElementById('features-nav');
+        const featuresMenu = document.getElementById('features-menu');
+        featuresNav.addEventListener('click', (e) => { e.preventDefault(); featuresMenu.classList.toggle('show'); });
+        document.addEventListener('click', (e) => {
+            if (!featuresNav.contains(e.target) && !featuresMenu.contains(e.target)) { featuresMenu.classList.remove('show'); }
+        });
+
+        <!-- JS cho converter: Xử lý chọn loại, form submit (mockup giả lập chuyển đổi) -->
+        const form = document.getElementById('converterForm');
+        const fileInput = document.getElementById('fileInput');
+        const typeOptions = document.querySelectorAll('.type-option');
+        const selectedType = document.getElementById('selectedType');
+        const progress = document.querySelector('.progress');
+        const progressBar = document.querySelector('.progress-bar');
+        const result = document.getElementById('result');
+
+        // Xử lý chọn loại chuyển đổi (click vào option)
+        typeOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                typeOptions.forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                selectedType.value = option.dataset.type;
+            });
+        });
+
+        // Xử lý form submit (mockup: giả lập progress và thành công)
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!fileInput.files[0] || !selectedType.value
