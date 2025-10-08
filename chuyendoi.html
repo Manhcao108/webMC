@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>🔄 Trung tâm chuyển đổi file</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.2/dist/ffmpeg.min.js"></script>
+  <style>
+    /* ====== RESET & BASE ====== */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #eef1f7 0%, #f8faff 100%);
+      color: #333;
+      text-align: center;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+
+    h1 {
+      color: #4f46e5;
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+    }
+
+    p.subtitle {
+      color: #666;
+      margin-bottom: 40px;
+      font-size: 1.1rem;
+    }
+
+    /* ====== CARD UI ====== */
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      max-width: 600px;
+      margin: auto;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+    }
+
+    select, input[type=file], button {
+      margin: 12px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      width: 80%;
+      max-width: 300px;
+      outline: none;
+    }
+
+    select {
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .btn {
+      background: linear-gradient(90deg, #4f46e5, #6366f1);
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: 0.3s;
+      font-weight: 600;
+    }
+
+    .btn:hover {
+      background: linear-gradient(90deg, #4338ca, #6366f1);
+      transform: scale(1.05);
+    }
+
+    #output {
+      margin-top: 25px;
+    }
+
+    #output img {
+      max-width: 320px;
+      border-radius: 10px;
+      margin-top: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    #loader {
+      display: none;
+      margin-top: 20px;
+      font-style: italic;
+      color: #666;
+      animation: fade 1s infinite alternate;
+    }
+
+    @keyframes fade {
+      from { opacity: 0.5; }
+      to { opacity: 1; }
+    }
+
+    a.btn-download {
+      display: inline-block;
+      background: #10b981;
+      padding: 10px 18px;
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+      margin-top: 10px;
+      transition: 0.3s;
+    }
+
+    a.btn-download:hover {
+      background: #059669;
+    }
+
+    footer {
+      margin-top: 50px;
+      color: #888;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🔄 Trung tâm chuyển đổi file</h1>
+  <p class="subtitle">Chọn loại chuyển đổi bạn muốn thực hiện</p>
+
+  <div class="card">
+    <select id="toolSelect">
+      <option value="">-- Chọn công cụ --</option>
+      <option value="mp4gif">🎬 MP4 → GIF</option>
+      <option value="pngjpg">🖼️ PNG ↔ JPG</option>
+      <option value="pdfdocx">📄 PDF ↔ DOCX</option>
+    </select>
+
+    <div id="toolArea"></div>
+    <div id="loader">⏳ Đang xử lý, vui lòng chờ...</div>
+    <div id="output"></div>
+  </div>
+
+  <footer>© 2025 Công cụ chuyển đổi – Hoàn toàn chạy trong trình duyệt 🌐</footer>
+
+  <script>
+    const toolSelect = document.getElementById('toolSelect');
+    const toolArea = document.getElementById('toolArea');
+    const output = document.getElementById('output');
+    const loader = document.getElementById('loader');
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: false });
+
+    toolSelect.addEventListener('change', () => {
+      const value = toolSelect.value;
+      output.innerHTML = '';
+      loader.style.display = 'none';
+
+      if (value === 'mp4gif') {
+        toolArea.innerHTML = `
+          <h3>🎬 Chuyển MP4 → GIF</h3>
+          <input type="file" id="videoInput" accept="video/mp4"><br>
+          <button class="btn" id="convertMP4">Bắt đầu chuyển</button>
+        `;
+
+        document.getElementById('convertMP4').onclick = async () => {
+          const file = document.getElementById('videoInput').files[0];
+          if (!file) return alert('Vui lòng chọn file MP4!');
+          loader.style.display = 'block';
+
+          await ffmpeg.load();
+          ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+          await ffmpeg.run('-i', 'input.mp4', '-t', '5', '-vf', 'fps=10,scale=320:-1:flags=lanczos', 'output.gif');
+          const data = ffmpeg.FS('readFile', 'output.gif');
+          const url = URL.createObjectURL(new Blob([data.buffer], { type: 'image/gif' }));
+
+          loader.style.display = 'none';
+          output.innerHTML = `
+            <h4>✅ Hoàn tất!</h4>
+            <img src="${url}">
+            <br><a href="${url}" download="video.gif" class="btn-download">⬇️ Tải GIF</a>
+          `;
+        };
+      }
+
+      else if (value === 'pngjpg') {
+        toolArea.innerHTML = `
+          <h3>🖼️ Chuyển PNG ↔ JPG</h3>
+          <input type="file" id="imgInput" accept="image/png, image/jpeg"><br>
+          <button class="btn" id="convertImg">Chuyển đổi</button>
+        `;
+
+        document.getElementById('convertImg').onclick = () => {
+          const file = document.getElementById('imgInput').files[0];
+          if (!file) return alert('Vui lòng chọn ảnh!');
+          loader.style.display = 'block';
+
+          const img = new Image();
+          img.src = URL.createObjectURL(file);
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            let mimeType, newExt;
+            if (ext === 'png') {
+              mimeType = 'image/jpeg';
+              newExt = 'jpg';
+            } else {
+              mimeType = 'image/png';
+              newExt = 'png';
+            }
+
+            const dataUrl = canvas.toDataURL(mimeType);
+            loader.style.display = 'none';
+            output.innerHTML = `
+              <h4>✅ Hoàn tất!</h4>
+              <img src="${dataUrl}">
+              <br><a href="${dataUrl}" download="converted.${newExt}" class="btn-download">⬇️ Tải ${newExt.toUpperCase()}</a>
+            `;
+          };
+        };
+      }
+
+      else if (value === 'pdfdocx') {
+        toolArea.innerHTML = `
+          <h3>📄 Chuyển PDF ↔ DOCX</h3>
+          <input type="file" id="pdfInput" accept=".pdf,.docx"><br>
+          <button class="btn" id="convertPDF">Bắt đầu chuyển</button>
+        `;
+
+        document.getElementById('convertPDF').onclick = () => {
+          const file = document.getElementById('pdfInput').files[0];
+          if (!file) return alert('Vui lòng chọn file PDF hoặc DOCX!');
+          loader.style.display = 'block';
+
+          // Mô phỏng xử lý — thực tế cần API thật như CloudConvert
+          setTimeout(() => {
+            loader.style.display = 'none';
+            output.innerHTML = `
+              <h4>✅ Mô phỏng hoàn tất!</h4>
+              <p>(Để chuyển đổi thật, cần tích hợp API xử lý tài liệu)</p>
+            `;
+          }, 1500);
+        };
+      }
+
+      else {
+        toolArea.innerHTML = '';
+      }
+    });
+  </script>
+</body>
+</html>
