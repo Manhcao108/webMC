@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>Trung tâm chuyển đổi file</title>
-  <!-- Sử dụng version FFmpeg ổn định hơn: 0.12.10 từ unpkg (thay vì cdnjs nếu lỗi) -->
+  <!-- FFmpeg chính -->
   <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+  <!-- Util cho fetchFile và toBlobURL -->
+  <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
   <style>
     body {
       font-family: "Inter", sans-serif;
@@ -88,7 +90,7 @@
     a#download:hover {
       background: #059669;
     }
-    /* Thêm style cho lỗi */
+    /* Style cho lỗi */
     .error {
       color: #ef4444;
       background: #fef2f2;
@@ -101,7 +103,7 @@
 </head>
 <body>
 <h1>🔄 Trung tâm chuyển đổi file</h1>
-<p>Chuyển đổi nhanh các định dạng phổ biến ngay trong trình duyệt. (Lưu ý: Video → GIF có thể mất 10-30s lần đầu do load FFmpeg).</p>
+<p>Chuyển đổi nhanh các định dạng phổ biến ngay trong trình duyệt. (Lưu ý: Video → GIF có thể mất 10-30s lần đầu do load FFmpeg ~30MB).</p>
 
 <div class="card">
   <div class="options">
@@ -118,9 +120,10 @@
 </div>
 
 <script>
-  // Import FFmpeg đúng cách cho version 0.12.x
-  const { FFmpeg } = FFmpegWASM;
-  const { fetchFile, toBlobURL } = FFmpegWASM;
+  // Fix import: Sử dụng global từ script UMD
+  // FFmpeg từ ffmpeg.js, FFmpegUtil từ util.js
+  const { FFmpeg } = FFmpeg;
+  const { fetchFile, toBlobURL } = FFmpegUtil;
 
   const buttons = document.querySelectorAll(".option");
   const fileInput = document.getElementById("fileInput");
@@ -227,8 +230,12 @@
 
   async function convertVideo(file, ext) {
     progress.textContent = "📥 Đang load FFmpeg... (Lần đầu có thể mất 10-30s)";
+    
+    // Tạo instance FFmpeg mới
     ffmpegInstance = new FFmpeg();
-    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+    
+    // URL cho core và wasm (match version 0.12.10)
+    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd';
     await ffmpegInstance.load({
       coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
       wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
@@ -238,11 +245,11 @@
     ffmpegInstance.FS('writeFile', inputName, await fetchFile(file));
     progress.textContent = "🔄 Đang chuyển video sang GIF...";
 
-    // Command FFmpeg: Giảm FPS=10, scale=320x?, Lanczos filter cho chất lượng tốt
+    // Command FFmpeg: Giảm FPS=10, scale=320x?, Lanczos filter cho chất lượng tốt, giới hạn 10s
     await ffmpegInstance.run(
       '-i', inputName,
       '-vf', 'fps=10,scale=320:-1:flags=lanczos',
-      '-t', '10', // Giới hạn 10s đầu để tránh file GIF quá lớn
+      '-t', '10', // Chỉ convert 10s đầu để GIF không quá lớn
       'output.gif'
     );
 
@@ -252,7 +259,7 @@
     download.href = url;
     download.download = "output.gif";
     download.style.display = "inline-block";
-    progress.textContent = "✅ Hoàn tất! (GIF có thể ngắn nếu video dài)";
+    progress.textContent = "✅ Hoàn tất! (GIF chỉ 10s đầu video)";
 
     // Cleanup
     ffmpegInstance.exit();
@@ -286,7 +293,9 @@
 
   // Cleanup URL khi unload trang
   window.addEventListener('beforeunload', () => {
-    if (ffmpegInstance) ffmpegInstance.exit();
+    if (ffmpegInstance) {
+      ffmpegInstance.exit();
+    }
   });
 </script>
 </body>
