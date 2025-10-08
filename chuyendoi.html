@@ -121,14 +121,9 @@
 </div>
 
 <script>
-  // Delay nhỏ để đợi FFmpeg CDN init
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      document.addEventListener('DOMContentLoaded', initApp);
-    }, 500);
-  });
-
-  function initApp() {
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM ready, init app...");
+    
     const buttons = document.querySelectorAll(".option");
     const fileInput = document.getElementById("fileInput");
     const convertBtn = document.getElementById("convertBtn");
@@ -138,8 +133,10 @@
     let selected = null;
     let ffmpegInstance = null;
 
+    // Event cho option buttons (chạy ngay)
     buttons.forEach(btn => {
       btn.addEventListener("click", () => {
+        console.log("Option clicked:", btn.dataset.type); // Debug
         buttons.forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         selected = btn.dataset.type;
@@ -151,7 +148,9 @@
       });
     });
 
+    // Event cho convert button (chạy ngay)
     convertBtn.addEventListener("click", async () => {
+      console.log("Convert clicked, selected:", selected); // Debug
       const file = fileInput.files[0];
       if (!selected) {
         showError("Vui lòng chọn loại chuyển đổi.");
@@ -207,6 +206,7 @@
     });
 
     async function convertImage(file, ext) {
+      console.log("Converting image...");
       return new Promise((resolve, reject) => {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
@@ -234,41 +234,39 @@
     }
 
     async function convertVideo(file, ext) {
-      // Check và access FFmpeg an toàn
-      if (typeof FFmpeg === 'undefined') {
+      console.log("Converting video, checking FFmpeg...");
+      // Check FFmpeg an toàn
+      if (typeof window.FFmpeg === 'undefined') {
         throw new Error("Thư viện FFmpeg chưa load. Thử reload trang hoặc kiểm tra mạng.");
       }
 
       progress.textContent = "📥 Đang load FFmpeg... (Lần đầu mất 10-30s)";
       
-      // Sử dụng FFmpeg.createFFmpeg trực tiếp (không destructure)
-      ffmpegInstance = FFmpeg.createFFmpeg({ log: true });
-      
-      // Retry load với timeout
-      const loadTimeout = 30000; // 30s timeout
-      const loadPromise = Promise.race([
-        ffmpegInstance.load({
-          coreURL: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js',
-          wasmURL: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.wasm',
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout load FFmpeg')), loadTimeout))
-      ]);
+      // Access createFFmpeg an toàn
+      const { createFFmpeg, fetchFile } = window.FFmpeg;
+      if (typeof createFFmpeg !== 'function') {
+        throw new Error("FFmpeg không có method createFFmpeg. Thử version khác.");
+      }
 
+      // Retry load
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          await loadPromise;
+          ffmpegInstance = createFFmpeg({ log: true });
+          await ffmpegInstance.load({
+            coreURL: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js',
+            wasmURL: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.wasm',
+          });
+          console.log("FFmpeg loaded OK");
           break;
         } catch (loadErr) {
           console.warn(`Load FFmpeg attempt ${attempt} failed:`, loadErr);
           if (attempt === 3) throw new Error(`Không load được FFmpeg sau 3 lần. Lỗi: ${loadErr.message}`);
-          // Reload FFmpeg instance cho retry
-          ffmpegInstance = FFmpeg.createFFmpeg({ log: true });
           await new Promise(r => setTimeout(r, 2000));
         }
       }
 
       const inputName = `input.${ext}`;
-      ffmpegInstance.FS('writeFile', inputName, await FFmpeg.fetchFile(file));
+      ffmpegInstance.FS('writeFile', inputName, await fetchFile(file));
       progress.textContent = "🔄 Đang chuyển video sang GIF...";
 
       await ffmpegInstance.run(
@@ -291,6 +289,7 @@
     }
 
     async function convertDoc(file, ext) {
+      console.log("Converting doc (mock)...");
       progress.textContent = "⚙️ Đang mô phỏng chuyển đổi (3s)...";
       await new Promise(r => setTimeout(r, 3000));
       const outputExt = ext === "pdf" ? "docx" : "pdf";
@@ -318,8 +317,8 @@
       if (ffmpegInstance) ffmpegInstance.exit();
     });
 
-    console.log("Script loaded thành công! Button sẵn sàng.");
-  }
+    console.log("App init OK! Buttons ready.");
+  });
 </script>
 </body>
 </html>
