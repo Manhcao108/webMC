@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Trung tâm chuyển đổi file</title>
-  <!-- FFmpeg version cũ ổn định hơn cho UMD global -->
+  <!-- FFmpeg version 0.10.1 ổn định -->
   <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
   <style>
     body {
@@ -121,7 +121,14 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
+  // Delay nhỏ để đợi FFmpeg CDN init
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      document.addEventListener('DOMContentLoaded', initApp);
+    }, 500);
+  });
+
+  function initApp() {
     const buttons = document.querySelectorAll(".option");
     const fileInput = document.getElementById("fileInput");
     const convertBtn = document.getElementById("convertBtn");
@@ -227,32 +234,41 @@
     }
 
     async function convertVideo(file, ext) {
-      // Check FFmpeg global (version 0.10.1 expose createFFmpeg)
-      if (typeof createFFmpeg === 'undefined') {
+      // Check và access FFmpeg an toàn
+      if (typeof FFmpeg === 'undefined') {
         throw new Error("Thư viện FFmpeg chưa load. Thử reload trang hoặc kiểm tra mạng.");
       }
 
       progress.textContent = "📥 Đang load FFmpeg... (Lần đầu mất 10-30s)";
-      const { createFFmpeg, fetchFile } = FFmpeg; // Global từ script
+      
+      // Sử dụng FFmpeg.createFFmpeg trực tiếp (không destructure)
+      ffmpegInstance = FFmpeg.createFFmpeg({ log: true });
+      
+      // Retry load với timeout
+      const loadTimeout = 30000; // 30s timeout
+      const loadPromise = Promise.race([
+        ffmpegInstance.load({
+          coreURL: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js',
+          wasmURL: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.wasm',
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout load FFmpeg')), loadTimeout))
+      ]);
 
-      // Retry load FFmpeg (3 lần)
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          ffmpegInstance = createFFmpeg({ log: true });
-          await ffmpegInstance.load({
-            coreURL: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js',
-            wasmURL: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.wasm',
-          });
-          break; // Thành công, thoát retry
+          await loadPromise;
+          break;
         } catch (loadErr) {
           console.warn(`Load FFmpeg attempt ${attempt} failed:`, loadErr);
-          if (attempt === 3) throw new Error(`Không load được FFmpeg sau 3 lần thử. Lỗi: ${loadErr.message}`);
-          await new Promise(r => setTimeout(r, 2000)); // Chờ 2s trước retry
+          if (attempt === 3) throw new Error(`Không load được FFmpeg sau 3 lần. Lỗi: ${loadErr.message}`);
+          // Reload FFmpeg instance cho retry
+          ffmpegInstance = FFmpeg.createFFmpeg({ log: true });
+          await new Promise(r => setTimeout(r, 2000));
         }
       }
 
       const inputName = `input.${ext}`;
-      ffmpegInstance.FS('writeFile', inputName, await fetchFile(file));
+      ffmpegInstance.FS('writeFile', inputName, await FFmpeg.fetchFile(file));
       progress.textContent = "🔄 Đang chuyển video sang GIF...";
 
       await ffmpegInstance.run(
@@ -303,7 +319,7 @@
     });
 
     console.log("Script loaded thành công! Button sẵn sàng.");
-  });
+  }
 </script>
 </body>
 </html>
