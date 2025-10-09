@@ -2,30 +2,30 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Trung tâm chuyển đổi file</title>
-  <!-- FFmpeg version 0.10.1 ổn định -->
-  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trung tâm chuyển đổi file - Dễ dùng</title>
+  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.4/dist/ffmpeg.min.js"></script>
   <style>
     body {
       font-family: "Inter", sans-serif;
       background: linear-gradient(135deg, #f5f7fa, #e4ecf7);
       text-align: center;
       margin: 0;
-      padding: 40px 20px;
+      padding: 20px;
       color: #333;
     }
     h1 {
       color: #3b82f6;
       margin-bottom: 10px;
-      font-size: 2rem;
+      font-size: 1.8rem;
     }
     p {
       color: #555;
-      margin-bottom: 25px;
+      margin-bottom: 20px;
     }
     .card {
       background: #fff;
-      padding: 30px;
+      padding: 25px;
       border-radius: 16px;
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
       max-width: 500px;
@@ -34,8 +34,8 @@
     .options {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      margin-bottom: 20px;
+      gap: 10px;
+      margin-bottom: 15px;
     }
     button.option {
       background: #f3f4f6;
@@ -50,16 +50,17 @@
       background: #3b82f6;
       color: #fff;
       border-color: #3b82f6;
-      transform: scale(1.03);
+      transform: scale(1.02);
     }
-    input[type=file], .action-btn {
-      margin-top: 15px;
-      padding: 10px;
+    #fileInput, .action-btn {
+      margin: 10px 0;
+      padding: 12px;
       border-radius: 10px;
       border: 1px solid #ccc;
       font-size: 1rem;
       width: 100%;
       max-width: 320px;
+      box-sizing: border-box;
     }
     .action-btn {
       background: #3b82f6;
@@ -68,17 +69,48 @@
       cursor: pointer;
       transition: 0.3s;
     }
-    .action-btn:hover {
+    .action-btn:hover, .action-btn:disabled {
       background: #2563eb;
     }
     .action-btn:disabled {
-      background: #9ca3af;
+      opacity: 0.7;
       cursor: not-allowed;
     }
+    #dropZone {
+      border: 2px dashed #ccc;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 10px 0;
+      background: #f9f9f9;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    #dropZone:hover, #dropZone.dragover {
+      border-color: #3b82f6;
+      background: #f0f8ff;
+    }
+    #dropZone p {
+      margin: 0;
+      color: #666;
+    }
     #progress {
-      margin-top: 15px;
+      margin: 15px 0;
       color: #555;
       font-style: italic;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #3b82f6;
+      width: 0%;
+      transition: width 0.3s;
     }
     a#download {
       display: none;
@@ -86,128 +118,134 @@
       text-decoration: none;
       background: #10b981;
       color: white;
-      padding: 10px 18px;
+      padding: 12px 20px;
       border-radius: 10px;
+      display: inline-block;
     }
     a#download:hover {
       background: #059669;
     }
-    .error {
-      color: #ef4444;
-      background: #fef2f2;
-      padding: 10px;
-      border-radius: 8px;
-      margin-top: 10px;
-      border: 1px solid #fecaca;
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      h1 { font-size: 1.5rem; }
+      .card { padding: 15px; }
     }
   </style>
 </head>
 <body>
 <h1>🔄 Trung tâm chuyển đổi file</h1>
-<p>Chuyển đổi nhanh các định dạng phổ biến ngay trong trình duyệt. (Lưu ý: Video → GIF có thể mất 10-30s lần đầu do load FFmpeg ~30MB).</p>
+<p>Chuyển đổi nhanh, dễ dùng. Chỉ cần chọn file và loại!</p>
 
 <div class="card">
   <div class="options">
     <button class="option" data-type="video">🎬 Video → GIF</button>
-    <button class="option" data-type="doc">📄 DOCX ↔ PDF (Mô phỏng)</button>
+    <button class="option" data-type="doc">📄 DOCX ↔ PDF</button>
     <button class="option" data-type="image">🖼 Ảnh ↔ JPG/PNG</button>
   </div>
 
-  <input type="file" id="fileInput" accept="video/*,image/*,.docx,.pdf">
+  <div id="dropZone">
+    <p>Kéo thả file vào đây hoặc <label for="fileInput" style="color: #3b82f6; cursor: pointer;">chọn file</label></p>
+  </div>
+  <input type="file" id="fileInput" accept="image/*,video/*,.docx,.pdf" style="display: none;">
+
   <button class="action-btn" id="convertBtn">Bắt đầu chuyển đổi</button>
 
   <div id="progress"></div>
+  <div class="progress-bar" id="progressBar" style="display: none;">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
   <a id="download" download>⬇️ Tải file kết quả</a>
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM ready, init app...");
-    
-    const buttons = document.querySelectorAll(".option");
-    const fileInput = document.getElementById("fileInput");
-    const convertBtn = document.getElementById("convertBtn");
-    const progress = document.getElementById("progress");
-    const download = document.getElementById("download");
+  const buttons = document.querySelectorAll(".option");
+  const fileInput = document.getElementById("fileInput");
+  const convertBtn = document.getElementById("convertBtn");
+  const progress = document.getElementById("progress");
+  const download = document.getElementById("download");
+  const dropZone = document.getElementById("dropZone");
+  const progressBar = document.getElementById("progressBar");
+  const progressFill = document.getElementById("progressFill");
 
-    let selected = null;
-    let ffmpegInstance = null;
+  let selected = null;
+  let currentFile = null;
 
-    // Event cho option buttons (chạy ngay)
-    buttons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        console.log("Option clicked:", btn.dataset.type); // Debug
-        buttons.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        selected = btn.dataset.type;
-        progress.textContent = "";
-        download.style.display = "none";
-        const errorDiv = document.querySelector(".error");
-        if (errorDiv) errorDiv.remove();
-        convertBtn.disabled = false;
-      });
+  // Chọn loại
+  buttons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      buttons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      selected = btn.dataset.type;
+      resetUI();
     });
+  });
 
-    // Event cho convert button (chạy ngay)
-    convertBtn.addEventListener("click", async () => {
-      console.log("Convert clicked, selected:", selected); // Debug
-      const file = fileInput.files[0];
-      if (!selected) {
-        showError("Vui lòng chọn loại chuyển đổi.");
-        return;
-      }
-      if (!file) {
-        showError("Vui lòng chọn file.");
-        return;
-      }
+  // Drag-drop và chọn file
+  dropZone.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", (e) => {
+    if (e.target.files[0]) {
+      currentFile = e.target.files[0];
+      updateFileName(currentFile.name);
+    }
+  });
 
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (selected === "video" && !file.type.startsWith('video/')) {
-        showError("Vui lòng chọn file video (MP4 khuyến nghị).");
-        return;
-      }
-      if (selected === "image" && !file.type.startsWith('image/')) {
-        showError("Vui lòng chọn file ảnh (JPG, PNG).");
-        return;
-      }
-      if (selected === "doc" && !['docx', 'pdf'].includes(ext)) {
-        showError("Vui lòng chọn file DOCX hoặc PDF.");
-        return;
-      }
+  dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+  });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) {
+      currentFile = e.dataTransfer.files[0];
+      fileInput.files = e.dataTransfer.files;
+      updateFileName(currentFile.name);
+    }
+  });
 
-      if (file.size > 100 * 1024 * 1024) {
-        showError("File quá lớn (>100MB). Thử file nhỏ hơn.");
-        return;
-      }
+  function updateFileName(name) {
+    dropZone.innerHTML = `<p>File: ${name} (Kéo thả file mới nếu muốn thay)</p>`;
+  }
 
-      convertBtn.disabled = true;
-      convertBtn.textContent = "Đang xử lý...";
-      progress.textContent = "⏳ Đang xử lý...";
-      download.style.display = "none";
-      const errorDiv = document.querySelector(".error");
-      if (errorDiv) errorDiv.remove();
+  function resetUI() {
+    progress.textContent = "";
+    progressBar.style.display = "none";
+    progressFill.style.width = "0%";
+    download.style.display = "none";
+    convertBtn.disabled = false;
+  }
 
-      try {
-        if (selected === "image") {
-          await convertImage(file, ext);
-        } else if (selected === "video") {
-          await convertVideo(file, ext);
-        } else if (selected === "doc") {
-          await convertDoc(file, ext);
-        }
-      } catch (err) {
-        console.error("Lỗi chi tiết:", err);
-        progress.textContent = "";
-        showError(`❌ Lỗi: ${err.message}. Kiểm tra console (F12).`);
-      } finally {
-        convertBtn.disabled = false;
-        convertBtn.textContent = "Bắt đầu chuyển đổi";
-      }
-    });
+  function showProgress(text, percent = 0) {
+    progress.textContent = text;
+    progressBar.style.display = "block";
+    progressFill.style.width = percent + "%";
+  }
 
-    async function convertImage(file, ext) {
-      console.log("Converting image...");
-      return new Promise((resolve, reject) => {
+  function showAlert(msg, isError = false) {
+    alert((isError ? "❌ " : "ℹ️ ") + msg);
+  }
+
+  // Chuyển đổi
+  convertBtn.addEventListener("click", async () => {
+    if (!selected) return showAlert("Vui lòng chọn loại chuyển đổi.");
+    if (!currentFile) return showAlert("Vui lòng chọn file.");
+
+    // Kiểm tra file type
+    const ext = currentFile.name.split('.').pop().toLowerCase();
+    let valid = false;
+    if (selected === "image" && (ext === "jpg" || ext === "jpeg" || ext === "png")) valid = true;
+    else if (selected === "video" && (ext === "mp4" || ext === "avi" || ext === "mov")) valid = true;
+    else if (selected === "doc" && (ext === "docx" || ext === "pdf")) valid = true;
+    if (!valid) return showAlert(`File không phù hợp! ${selected === "image" ? "Cần JPG/PNG." : selected === "video" ? "Cần MP4/AVI/MOV." : "Cần DOCX/PDF."}`, true);
+
+    convertBtn.disabled = true;
+    showProgress("⏳ Đang xử lý...", 10);
+    download.style.display = "none";
+
+    try {
+      if (selected === "image") {
+        showProgress("🔄 Đang chuyển ảnh...", 50);
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
         const img = new Image();
@@ -215,109 +253,56 @@
           canvas.width = img.width;
           canvas.height = img.height;
           ctx.drawImage(img, 0, 0);
-          const isPng = ext === "png";
-          const newType = isPng ? "image/jpeg" : "image/png";
-          const newExt = isPng ? "jpg" : "png";
+          const isJpg = ext === "jpg" || ext === "jpeg";
+          const newType = isJpg ? "image/png" : "image/jpeg";
+          const newExt = isJpg ? "png" : "jpg";
           canvas.toBlob(blob => {
-            if (!blob) reject(new Error("Không tạo được blob ảnh."));
             const url = URL.createObjectURL(blob);
             download.href = url;
             download.download = `converted.${newExt}`;
             download.style.display = "inline-block";
-            progress.textContent = "✅ Hoàn tất!";
-            resolve();
-          }, newType, 0.9);
+            showProgress("✅ Hoàn tất!", 100);
+            convertBtn.disabled = false;
+          }, newType);
         };
-        img.onerror = () => reject(new Error("Không load được ảnh."));
-        img.src = URL.createObjectURL(file);
-      });
-    }
-
-    async function convertVideo(file, ext) {
-      console.log("Converting video, checking FFmpeg...");
-      // Check FFmpeg an toàn
-      if (typeof window.FFmpeg === 'undefined') {
-        throw new Error("Thư viện FFmpeg chưa load. Thử reload trang hoặc kiểm tra mạng.");
-      }
-
-      progress.textContent = "📥 Đang load FFmpeg... (Lần đầu mất 10-30s)";
-      
-      // Access createFFmpeg an toàn
-      const { createFFmpeg, fetchFile } = window.FFmpeg;
-      if (typeof createFFmpeg !== 'function') {
-        throw new Error("FFmpeg không có method createFFmpeg. Thử version khác.");
-      }
-
-      // Retry load
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          ffmpegInstance = createFFmpeg({ log: true });
-          await ffmpegInstance.load({
-            coreURL: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js',
-            wasmURL: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.wasm',
-          });
-          console.log("FFmpeg loaded OK");
-          break;
-        } catch (loadErr) {
-          console.warn(`Load FFmpeg attempt ${attempt} failed:`, loadErr);
-          if (attempt === 3) throw new Error(`Không load được FFmpeg sau 3 lần. Lỗi: ${loadErr.message}`);
-          await new Promise(r => setTimeout(r, 2000));
+        img.src = URL.createObjectURL(currentFile);
+      } else if (selected === "video") {
+        showProgress("🔄 Đang tải FFmpeg...", 20);
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
+        await ffmpeg.load();
+        const inputName = `input.${ext}`;
+        ffmpeg.FS('writeFile', inputName, await fetchFile(currentFile));
+        showProgress("🔄 Đang chuyển video...", 50);
+        await ffmpeg.run('-i', inputName, '-vf', 'fps=10,scale=320:-1:flags=lanczos', 'output.gif');
+        const data = ffmpeg.FS('readFile', 'output.gif');
+        const url = URL.createObjectURL(new Blob([data.buffer], { type: 'image/gif' }));
+        download.href = url;
+        download.download = `${currentFile.name.split('.')[0]}.gif`;
+        download.style.display = "inline-block";
+        showProgress("✅ Hoàn tất!", 100);
+        convertBtn.disabled = false;
+      } else if (selected === "doc") {
+        showProgress("⚙️ Đang mô phỏng chuyển đổi...", 30);
+        for (let i = 40; i <= 90; i += 10) {
+          await new Promise(r => setTimeout(r, 300));
+          showProgress("⚙️ Đang xử lý...", i);
         }
+        const blob = new Blob(["Nội dung mô phỏng: File gốc là " + currentFile.name + ". (Chưa hỗ trợ thực tế, dùng tool online nếu cần)."], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        download.href = url;
+        download.download = ext === "pdf" ? "output.docx" : "output.pdf";
+        download.style.display = "inline-block";
+        showProgress("✅ Hoàn tất mô phỏng!", 100);
+        showAlert("Lưu ý: DOCX/PDF chỉ mô phỏng. Dùng Google Docs hoặc tool online cho thực tế.");
+        convertBtn.disabled = false;
       }
-
-      const inputName = `input.${ext}`;
-      ffmpegInstance.FS('writeFile', inputName, await fetchFile(file));
-      progress.textContent = "🔄 Đang chuyển video sang GIF...";
-
-      await ffmpegInstance.run(
-        '-i', inputName,
-        '-vf', 'fps=10,scale=320:-1:flags=lanczos',
-        '-t', '10',
-        'output.gif'
-      );
-
-      const data = ffmpegInstance.FS('readFile', 'output.gif');
-      const blob = new Blob([data.buffer], { type: 'image/gif' });
-      const url = URL.createObjectURL(blob);
-      download.href = url;
-      download.download = "output.gif";
-      download.style.display = "inline-block";
-      progress.textContent = "✅ Hoàn tất! (GIF 10s đầu video)";
-
-      ffmpegInstance.exit();
-      ffmpegInstance = null;
-    }
-
-    async function convertDoc(file, ext) {
-      console.log("Converting doc (mock)...");
-      progress.textContent = "⚙️ Đang mô phỏng chuyển đổi (3s)...";
-      await new Promise(r => setTimeout(r, 3000));
-      const outputExt = ext === "pdf" ? "docx" : "pdf";
-      const blob = new Blob([
-        `Nội dung mock cho ${outputExt} từ ${file.name}.\n\nDùng tool online như SmallPDF cho convert thật.`
-      ], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      download.href = url;
-      download.download = `output.${outputExt}`;
-      download.style.display = "inline-block";
-      progress.textContent = "✅ Hoàn tất mô phỏng!";
-    }
-
-    function showError(message) {
-      progress.textContent = "";
-      const errorDiv = document.createElement("div");
-      errorDiv.className = "error";
-      errorDiv.textContent = message;
-      document.querySelector(".card").appendChild(errorDiv);
+    } catch (err) {
+      console.error(err);
+      showProgress("❌ Lỗi khi chuyển đổi!", 0);
+      showAlert("Lỗi: " + err.message + ". Thử file nhỏ hơn hoặc browser khác.", true);
       convertBtn.disabled = false;
-      convertBtn.textContent = "Bắt đầu chuyển đổi";
     }
-
-    window.addEventListener('beforeunload', () => {
-      if (ffmpegInstance) ffmpegInstance.exit();
-    });
-
-    console.log("App init OK! Buttons ready.");
   });
 </script>
 </body>
