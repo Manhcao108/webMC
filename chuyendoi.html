@@ -86,7 +86,7 @@
       cursor: pointer;
       transition: 0.3s;
     }
-    .action-btn:hover, .action-btn:disabled {
+    .action-btn:hover:not(:disabled), .action-btn:disabled {
       background: #2563eb;
     }
     .action-btn:disabled {
@@ -157,11 +157,11 @@
 </head>
 <body>
 <h1>🔄 Trung tâm chuyển đổi file</h1>
-<p>Chuyển đổi nhanh, dễ dùng. Chỉ cần chọn file và loại! (Video: Giới hạn <50MB, <60s)</p>
+<p>Chuyển đổi nhanh, dễ dùng. Chỉ cần chọn file và loại! (Video: <50MB, <60s, cắt tùy ý 3-10s lý tưởng)</p>
 
 <div class="card">
   <div class="options">
-    <button class="option" data-type="video">🎬 Video → GIF</button>
+    <button class="option" data-type="video">🎬 Video → GIF (cắt tùy ý)</button>
     <button class="option" data-type="doc">📄 DOCX ↔ PDF</button>
     <button class="option" data-type="image">🖼 Ảnh ↔ JPG/PNG</button>
   </div>
@@ -176,7 +176,7 @@
     <input type="number" id="startTime" min="0" max="60" value="0" step="0.1">
     <label for="duration">Độ dài cắt (giây):</label>
     <input type="number" id="duration" min="1" max="60" value="10" step="0.1">
-    <p class="note">Mặc định: Cắt 10 giây từ đầu. Video dài >60s sẽ bị chặn để tránh lag.</p>
+    <p class="note">Mặc định: Cắt 10 giây từ đầu. Video >60s bị chặn. Lý tưởng 3-10s cho GIF nhẹ, mượt.</p>
   </div>
 
   <button class="action-btn" id="convertBtn">Bắt đầu chuyển đổi</button>
@@ -203,7 +203,7 @@
 
   let selected = null;
   let currentFile = null;
-  let videoDuration = 0; // Để lưu thời lượng video
+  let videoDuration = 0;
 
   // Chọn loại
   buttons.forEach(btn => {
@@ -212,6 +212,10 @@
       btn.classList.add("active");
       selected = btn.dataset.type;
       trimOptions.style.display = selected === "video" ? "block" : "none";
+      if (selected === "video") {
+        startTimeInput.value = 0;
+        durationInput.value = 10;
+      }
       resetUI();
     });
   });
@@ -222,7 +226,10 @@
     if (e.target.files[0]) {
       currentFile = e.target.files[0];
       updateFileName(currentFile.name);
-      if (selected === "video") probeVideoDuration();
+      if (selected === "video") {
+        videoDuration = 0; // Reset để probe lại
+        probeVideoDuration();
+      }
     }
   });
 
@@ -238,7 +245,10 @@
       currentFile = e.dataTransfer.files[0];
       fileInput.files = e.dataTransfer.files;
       updateFileName(currentFile.name);
-      if (selected === "video") probeVideoDuration();
+      if (selected === "video") {
+        videoDuration = 0;
+        probeVideoDuration();
+      }
     }
   });
 
@@ -264,46 +274,45 @@
     alert((isError ? "❌ " : "ℹ️ ") + msg);
   }
 
-  // Probe thời lượng video bằng FFmpeg
+  // Probe thời lượng video
   async function probeVideoDuration() {
     if (!currentFile || selected !== "video") return;
     try {
-      showProgress("🔍 Đang kiểm tra video...", 5);
-      const { FFmpeg } = FFmpeg; // Sử dụng FFmpeg để probe
-      const ffmpeg = FFmpeg.createFFmpeg({ log: true });
+      showProgress("🔍 Đang kiểm tra thời lượng video...", 5);
+      const { createFFmpeg, fetchFile } = FFmpeg;
+      const ffmpeg = createFFmpeg({ log: true });
       await ffmpeg.load();
-      const inputName = `input.${currentFile.name.split('.').pop().toLowerCase()}`;
-      ffmpeg.FS('writeFile', inputName, await FFmpeg.fetchFile(currentFile));
+      const ext = currentFile.name.split('.').pop().toLowerCase();
+      const inputName = `input.${ext}`;
+      ffmpeg.FS('writeFile', inputName, await fetchFile(currentFile));
       const { stderr } = await ffmpeg.run('-i', inputName, '-hide_banner', '-f', 'null', '-');
-      // Parse duration từ stderr (dạng "Duration: 00:00:30.00")
       const durationMatch = stderr.match(/Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
       if (durationMatch) {
         const hours = parseInt(durationMatch[1]);
         const mins = parseInt(durationMatch[2]);
         const secs = parseInt(durationMatch[3]);
-        videoDuration = hours * 3600 + mins * 60 + secs;
-        showProgress(`Video dài ${videoDuration}s. Sẵn sàng cắt!`, 10);
-        // Update max cho inputs
+        const ms = parseInt(durationMatch[4]);
+        videoDuration = hours * 3600 + mins * 60 + secs + ms / 100;
+        showProgress(`✅ Video dài ${Math.round(videoDuration)}s. Sẵn sàng cắt!`, 10);
         startTimeInput.max = videoDuration;
         durationInput.max = videoDuration;
       } else {
         videoDuration = 0;
-        showAlert("Không detect được thời lượng video.", true);
+        showAlert("Không detect được thời lượng. Thử file MP4 khác.", true);
       }
-      // Cleanup
       ffmpeg.exit();
     } catch (err) {
       console.error(err);
-      showAlert("Lỗi kiểm tra video: " + err.message, true);
+      showAlert("Lỗi probe video: " + err.message, true);
+      videoDuration = 0;
     }
   }
 
-  // Chuyển đổi
+  // Chuyển đổi chính
   convertBtn.addEventListener("click", async () => {
     if (!selected) return showAlert("Vui lòng chọn loại chuyển đổi.");
     if (!currentFile) return showAlert("Vui lòng chọn file.");
 
-    // Kiểm tra file type
     const ext = currentFile.name.split('.').pop().toLowerCase();
     let valid = false;
     if (selected === "image" && (ext === "jpg" || ext === "jpeg" || ext === "png")) valid = true;
@@ -311,8 +320,7 @@
     else if (selected === "doc" && (ext === "docx" || ext === "pdf")) valid = true;
     if (!valid) return showAlert(`File không phù hợp! ${selected === "image" ? "Cần JPG/PNG." : selected === "video" ? "Cần MP4/AVI/MOV." : "Cần DOCX/PDF."}`, true);
 
-    // Giới hạn chung
-    if (currentFile.size > 50 * 1024 * 1024) return showAlert("File quá lớn (>50MB)! Chọn video nhỏ hơn để tránh lag.", true);
+    if (currentFile.size > 50 * 1024 * 1024) return showAlert("❌ File >50MB! Chọn file nhỏ hơn để tránh crash.", true);
 
     convertBtn.disabled = true;
     showProgress("⏳ Đang xử lý...", 10);
@@ -340,25 +348,58 @@
             convertBtn.disabled = false;
           }, newType);
         };
+        img.onerror = () => {
+          showAlert("Lỗi load ảnh.", true);
+          convertBtn.disabled = false;
+        };
         img.src = URL.createObjectURL(currentFile);
       } else if (selected === "video") {
-        // Kiểm tra thời lượng (probe nếu chưa)
         if (videoDuration === 0) await probeVideoDuration();
-        if (videoDuration > 60) return showAlert("Video quá dài (>60s)! Hãy cắt ngắn hoặc dùng tool khác.", true);
+        if (videoDuration > 60) return showAlert("❌ Video >60s! Cắt ngắn trước (dùng CapCut/VLC).", true);
 
         const startTime = parseFloat(startTimeInput.value) || 0;
-        let duration = parseFloat(durationInput.value) || videoDuration - startTime;
-        if (startTime + duration > videoDuration) duration = videoDuration - startTime;
-        if (duration < 1) return showAlert("Độ dài cắt phải >=1 giây!", true);
+        let duration = parseFloat(durationInput.value) || 10;
+        if (startTime + duration > videoDuration) {
+          duration = videoDuration - startTime;
+          showAlert(`ℹ️ Điều chỉnh: Cắt đến ${Math.round(duration)}s (giới hạn video).`);
+        }
+        if (duration < 1) return showAlert("❌ Độ dài >=1s! Gợi ý 3-10s cho GIF tốt.", true);
 
-        showProgress(`🔄 Đang tải FFmpeg... (Cắt từ ${startTime}s, dài ${duration}s)`, 20);
-        const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: true });
-        await ffmpeg.load();
-        const inputName = `input.${ext}`;
-        ffmpeg.FS('writeFile', inputName, await fetchFile(currentFile));
-        showProgress("🔄 Đang cắt và chuyển video...", 50);
-        // Lệnh FFmpeg với trim: -ss start -t duration
-        await ffmpeg.run('-i', inputName, '-ss', startTime.toString(), '-t', duration.toString(), '-vf', 'fps=10,scale=320:-1:flags=lanczos', 'output.gif');
-        const data = ffmpeg.FS('readFile', 'output.gif');
-        const url =
+                showProgress("✅ Hoàn tất! GIF đã sẵn sàng tải.", 100);
+        ffmpeg.exit(); // Cleanup để giải phóng RAM
+        convertBtn.disabled = false;
+      } else if (selected === "doc") {
+        showProgress("⚙️ Đang mô phỏng chuyển đổi DOCX/PDF...", 30);
+        // Simulate progress với delay (fake, vì client-side khó convert thực tế)
+        for (let i = 40; i <= 90; i += 10) {
+          await new Promise(resolve => setTimeout(resolve, 400)); // Delay 0.4s mỗi bước
+          showProgress(`⚙️ Xử lý nội dung... (${i}%)`, i);
+        }
+        const blob = new Blob([
+          `Nội dung mô phỏng từ file: ${currentFile.name}\n\n` +
+          `Đây là demo client-side. Để convert thực tế DOCX ↔ PDF, dùng:\n` +
+          `- Google Docs (miễn phí online)\n` +
+          `- Microsoft Word Online\n` +
+          `- Hoặc tool như LibreOffice (desktop).\n\n` +
+          `File gốc: ${ext.toUpperCase()}. Kết quả: ${ext === 'pdf' ? 'DOCX' : 'PDF'}.`
+        ], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        download.href = url;
+        download.download = ext === "pdf" ? "output.docx" : "output.pdf";
+        download.style.display = "inline-block";
+        showProgress("✅ Hoàn tất mô phỏng!", 100);
+        showAlert("Lưu ý: DOCX/PDF chỉ demo. Dùng tool online cho convert thực tế!");
+        convertBtn.disabled = false;
+      }
+    } catch (err) {
+      console.error("Lỗi chuyển đổi:", err);
+      showProgress("❌ Lỗi xảy ra! Thử lại với file nhỏ hơn.", 0);
+      showAlert(`Lỗi: ${err.message || "Không xác định"}. Kiểm tra file và browser (Chrome khuyến nghị).`, true);
+      convertBtn.disabled = false;
+      // Cleanup nếu FFmpeg đang chạy
+      if (typeof ffmpeg !== 'undefined' && ffmpeg.exit) ffmpeg.exit();
+    }
+  });
+</script>
+</body>
+</html>
