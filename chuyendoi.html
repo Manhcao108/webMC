@@ -1,300 +1,332 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trung tâm chuyển đổi file - Dễ dùng</title>
-  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.4/dist/ffmpeg.min.js"></script>
-  <style>
-    body {
-      font-family: "Inter", sans-serif;
-      background: linear-gradient(135deg, #f5f7fa, #e4ecf7);
-      text-align: center;
-      margin: 0;
-      padding: 20px;
-      color: #333;
-    }
-    h1 {
-      color: #3b82f6;
-      margin-bottom: 10px;
-      font-size: 1.8rem;
-    }
-    p {
-      color: #555;
-      margin-bottom: 20px;
-    }
-    .card {
-      background: #fff;
-      padding: 25px;
-      border-radius: 16px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-      max-width: 500px;
-      margin: auto;
-    }
-    .options {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-    button.option {
-      background: #f3f4f6;
-      border: 1px solid #d1d5db;
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    button.option:hover, button.option.active {
-      background: #3b82f6;
-      color: #fff;
-      border-color: #3b82f6;
-      transform: scale(1.02);
-    }
-    #fileInput, .action-btn {
-      margin: 10px 0;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      font-size: 1rem;
-      width: 100%;
-      max-width: 320px;
-      box-sizing: border-box;
-    }
-    .action-btn {
-      background: #3b82f6;
-      color: white;
-      border: none;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    .action-btn:hover:not(:disabled), .action-btn:disabled {
-      background: #2563eb;
-    }
-    .action-btn:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
-    #dropZone {
-      border: 2px dashed #ccc;
-      border-radius: 10px;
-      padding: 20px;
-      margin: 10px 0;
-      background: #f9f9f9;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    #dropZone:hover, #dropZone.dragover {
-      border-color: #3b82f6;
-      background: #f0f8ff;
-    }
-    #dropZone p {
-      margin: 0;
-      color: #666;
-    }
-    #progress {
-      margin: 15px 0;
-      color: #555;
-      font-style: italic;
-    }
-    .progress-bar {
-      width: 100%;
-      height: 8px;
-      background: #e5e7eb;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-top: 5px;
-    }
-    .progress-fill {
-      height: 100%;
-      background: #3b82f6;
-      width: 0%;
-      transition: width 0.3s;
-    }
-    a#download {
-      display: none;
-      margin-top: 15px;
-      text-decoration: none;
-      background: #10b981;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 10px;
-      display: inline-block;
-    }
-    a#download:hover {
-      background: #059669;
-    }
-    .note {
-      font-size: 0.8rem;
-      color: #888;
-      margin-top: 5px;
-    }
-    @media (max-width: 600px) {
-      body { padding: 10px; }
-      h1 { font-size: 1.5rem; }
-      .card { padding: 15px; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trung tâm chuyển đổi file - Dễ dùng</title>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.4/dist/ffmpeg.min.js"></script>
+    <style>
+        /* Thêm style cho thông báo lỗi */
+        #errorMessage {
+          color: #e74c3c;  /* Màu đỏ nhẹ */
+          background-color: #f8d7da;  /* Nền đỏ nhạt */
+          padding: 10px;
+          border-radius: 5px;
+          margin: 10px 0;
+          font-size: 0.9rem;
+          display: none;  /* Ẩn ban đầu */
+          text-align: left;
+        }
+        body {
+          font-family: "Inter", sans-serif;
+          background: linear-gradient(135deg, #f5f7fa, #e4ecf7);
+          text-align: center;
+          margin: 0;
+          padding: 20px;
+          color: #333;
+        }
+        h1 {
+          color: #3b82f6;
+          margin-bottom: 10px;
+          font-size: 1.8rem;
+        }
+        p {
+          color: #555;
+          margin-bottom: 20px;
+        }
+        .card {
+          background: #fff;
+          padding: 25px;
+          border-radius: 16px;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+          max-width: 500px;
+          margin: auto;
+        }
+        .options {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-bottom: 15px;
+        }
+        button.option {
+          background: #f3f4f6;
+          border: 1px solid #d1d5db;
+          padding: 12px;
+          border-radius: 10px;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+        button.option:hover, button.option.active {
+          background: #3b82f6;
+          color: #fff;
+          border-color: #3b82f6;
+          transform: scale(1.02);
+        }
+        #fileInput, .action-btn {
+          margin: 10px 0;
+          padding: 12px;
+          border-radius: 10px;
+          border: 1px solid #ccc;
+          font-size: 1rem;
+          width: 100%;
+          max-width: 320px;
+          box-sizing: border-box;
+        }
+        .action-btn {
+          background: #3b82f6;
+          color: white;
+          border: none;
+          cursor: pointer;
+          transition: 0.3s;
+        }
+        .action-btn:hover:not(:disabled), .action-btn:disabled {
+          background: #2563eb;
+        }
+        .action-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+        #dropZone {
+          border: 2px dashed #ccc;
+          border-radius: 10px;
+          padding: 20px;
+          margin: 10px 0;
+          background: #f9f9f9;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+        #dropZone:hover, #dropZone.dragover {
+          border-color: #3b82f6;
+          background: #f0f8ff;
+        }
+        #dropZone p {
+          margin: 0;
+          color: #666;
+        }
+        #progress {
+          margin: 15px 0;
+          color: #555;
+          font-style: italic;
+        }
+        .progress-bar {
+          width: 100%;
+          height: 8px;
+          background: #e5e7eb;
+          border-radius: 4px;
+          overflow: hidden;
+          margin-top: 5px;
+        }
+        .progress-fill {
+          height: 100%;
+          background: #3b82f6;
+          width: 0%;
+          transition: width 0.3s;
+        }
+        a#download {
+          display: none;
+          margin-top: 15px;
+          text-decoration: none;
+          background: #10b981;
+          color: white;
+          padding: 12px 20px;
+          border-radius: 10px;
+          display: inline-block;
+        }
+        a#download:hover {
+          background: #059669;
+        }
+        .note {
+          font-size: 0.8rem;
+          color: #888;
+          margin-top: 5px;
+        }
+        @media (max-width: 600px) {
+          body { padding: 10px; }
+          h1 { font-size: 1.5rem; }
+          .card { padding: 15px; }
+        }
+    </style>
 </head>
 <body>
 <h1>🔄 Trung tâm chuyển đổi file</h1>
 <p>Chuyển đổi nhanh, dễ dùng. Chỉ cần chọn file và loại! (Hỗ trợ ảnh JPG/PNG và HEIC → JPG)</p>
 
 <div class="card">
-  <div class="options">
-    <button class="option" data-type="image">🖼 Ảnh ↔ JPG/PNG</button>
-    <button class="option" data-type="image-heic">🖼 HEIC → JPG/PNG</button>
-  </div>
+    <div class="options">
+        <button class="option" data-type="image"> Ảnh ↔ JPG/PNG</button>
+        <button class="option" data-type="image-heic"> HEIC(iphone) → JPG/PNG</button>
+    </div>
 
-  <div id="dropZone">
-    <p>Kéo thả file vào đây hoặc <label for="fileInput" style="color: #3b82f6; cursor: pointer;">chọn file</label></p>
-  </div>
-  <input type="file" id="fileInput" accept="image/*,.heic" style="display: none;">
+    <div id="errorMessage"></div>  <!-- Phần tử cho thông báo lỗi -->
 
-  <button class="action-btn" id="convertBtn">Bắt đầu chuyển đổi</button>
+    <div id="dropZone">
+        <p>Kéo thả file vào đây hoặc <label for="fileInput" style="color: #3b82f6; cursor: pointer;">chọn file</label></p>
+    </div>
+    <input type="file" id="fileInput" accept="image/*,.heic" style="display: none;">
 
-  <div id="progress"></div>
-  <div class="progress-bar" id="progressBar" style="display: none;">
-    <div class="progress-fill" id="progressFill"></div>
-  </div>
-  <a id="download" download>⬇️ Tải file kết quả</a>
+    <button class="action-btn" id="convertBtn">Bắt đầu chuyển đổi</button>
+
+    <div id="progress"></div>
+    <div class="progress-bar" id="progressBar" style="display: none;">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <a id="download" download>⬇️ Tải file kết quả</a>
 </div>
 
 <script>
-  const buttons = document.querySelectorAll(".option");
-  const fileInput = document.getElementById("fileInput");
-  const convertBtn = document.getElementById("convertBtn");
-  const progress = document.getElementById("progress");
-  const download = document.getElementById("download");
-  const dropZone = document.getElementById("dropZone");
-  const progressBar = document.getElementById("progressBar");
-  const progressFill = document.getElementById("progressFill");
+    const buttons = document.querySelectorAll(".option");
+    const fileInput = document.getElementById("fileInput");
+    const convertBtn = document.getElementById("convertBtn");
+    const progress = document.getElementById("progress");
+    const download = document.getElementById("download");
+    const dropZone = document.getElementById("dropZone");
+    const progressBar = document.getElementById("progressBar");
+    const progressFill = document.getElementById("progressFill");
+    const errorMessage = document.getElementById("errorMessage");  // Lấy phần tử thông báo lỗi
 
-  let selected = null;
-  let currentFile = null;
+    let selected = null;
+    let currentFile = null;
 
-  buttons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      buttons.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      selected = btn.dataset.type;
-      resetUI();
+    buttons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        buttons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        selected = btn.dataset.type;
+        resetUI();  // Ẩn thông báo lỗi khi chọn button mới
+        errorMessage.style.display = 'none';
+      });
     });
-  });
 
-  dropZone.addEventListener("click", () => fileInput.click());
-  fileInput.addEventListener("change", (e) => {
-    if (e.target.files[0]) {
-      currentFile = e.target.files[0];
-      updateFileName(currentFile.name);
-    }
-  });
-
-  dropZone.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    dropZone.classList.add("dragover");
-  });
-  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
-  dropZone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    dropZone.classList.remove("dragover");
-    if (e.dataTransfer.files[0]) {
-      currentFile = e.dataTransfer.files[0];
-      fileInput.files = e.dataTransfer.files;
-      updateFileName(currentFile.name);
-    }
-  });
-
-  function updateFileName(name) {
-    dropZone.innerHTML = `<p>File: ${name} (Kéo thả file mới nếu muốn thay)</p>`;
-  }
-
-  function resetUI() {
-    progress.textContent = "";
-    progressBar.style.display = "none";
-    progressFill.style.width = "0%";
-    download.style.display = "none";
-    convertBtn.disabled = false;
-  }
-
-  function showProgress(text, percent = 0) {
-    progress.textContent = text;
-    progressBar.style.display = "block";
-    progressFill.style.width = percent + "%";
-  }
-
-  function showAlert(msg, isError = false) {
-    alert((isError ? "❌ " : "ℹ️ ") + msg);
-  }
-
-  convertBtn.addEventListener("click", async () => {
-    if (!selected) return showAlert("Vui lòng chọn loại chuyển đổi.");
-    if (!currentFile) return showAlert("Vui lòng chọn file.");
-
-    const ext = currentFile.name.split('.').pop().toLowerCase();
-    let valid = false;
-    if (selected === "image" && (ext === "jpg" || ext === "jpeg" || ext === "png")) valid = true;
-    else if (selected === "image-heic" && ext === "heic") valid = true;
-    if (!valid) return showAlert(`File không phù hợp! ${selected === "image-heic" ? "Cần file HEIC." : "Cần JPG/PNG."}`, true);
-
-    if (currentFile.size > 50 * 1024 * 1024) return showAlert("❌ File >50MB! Chọn file nhỏ hơn để tránh crash.", true);
-
-    convertBtn.disabled = true;
-    showProgress("⏳ Đang xử lý...", 10);
-    download.style.display = "none";
-
-    try {
-      if (selected === "image") {
-        showProgress("🔄 Đang chuyển ảnh...", 50);
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        const img = new Image();
-        img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          const isJpg = ext === "jpg" || ext === "jpeg";
-          const newType = isJpg ? "image/png" : "image/jpeg";
-          const newExt = isJpg ? "png" : "jpg";
-          canvas.toBlob(blob => {
-            const url = URL.createObjectURL(blob);
-            download.href = url;
-            download.download = `converted.${newExt}`;
-            download.style.display = "inline-block";
-            showProgress("✅ Hoàn tất!", 100);
-            convertBtn.disabled = false;
-          }, newType);
-        };
-        img.onerror = () => {
-          showAlert("Lỗi load ảnh.", true);
-          convertBtn.disabled = false;
-        };
-        img.src = URL.createObjectURL(currentFile);
-      } else if (selected === "image-heic") {
-        showProgress("🔄 Đang chuyển HEIC sang JPG...", 50);
-        const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: true });
-        await ffmpeg.load();
-        ffmpeg.FS('writeFile', 'input.heic', await fetchFile(currentFile));
-        await ffmpeg.run('-i', 'input.heic', 'output.jpg');
-        const data = ffmpeg.FS('readFile', 'output.jpg');
-        const blob = new Blob([data.buffer], { type: 'image/jpeg' });
-        const url = URL.createObjectURL(blob);
-        download.href = url;
-        download.download = 'converted.jpg';
-        download.style.display = "inline-block";
-        showProgress("✅ Hoàn tất chuyển đổi HEIC!", 100);
-        ffmpeg.exit();
-        convertBtn.disabled = false;
+    dropZone.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files[0]) {
+        currentFile = e.target.files[0];
+        updateFileName(currentFile.name);
+        errorMessage.style.display = 'none';  // Ẩn thông báo lỗi khi chọn file mới
       }
-    } catch (err) {
-      console.error("Lỗi chuyển đổi:", err);
-      showProgress("❌ Lỗi xảy ra! Thử lại với file nhỏ hơn.", 0);
-      showAlert(`Lỗi: ${err.message || "Không xác định"}. Kiểm tra file và browser (Chrome khuyến nghị).`, true);
-      if (typeof ffmpeg !== 'undefined' && ffmpeg.exit) ffmpeg.exit();
+    });
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      if (e.dataTransfer.files[0]) {
+        currentFile = e.dataTransfer.files[0];
+        fileInput.files = e.dataTransfer.files;
+        updateFileName(currentFile.name);
+        errorMessage.style.display = 'none';  // Ẩn thông báo lỗi
+      }
+    });
+
+    function updateFileName(name) {
+      dropZone.innerHTML = `<p>File: ${name} (Kéo thả file mới nếu muốn thay)</p>`;
     }
-  });
+
+    function resetUI() {
+      progress.textContent = "";
+      progressBar.style.display = "none";
+      progressFill.style.width = "0%";
+      download.style.display = "none";
+      convertBtn.disabled = false;
+      errorMessage.style.display = 'none';  // Ẩn thông báo lỗi
+    }
+
+    function showProgress(text, percent = 0) {
+      progress.textContent = text;
+      progressBar.style.display = "block";
+      progressFill.style.width = percent + "%";
+    }
+
+    function showErrorMessage(msg) {
+      errorMessage.textContent = msg;
+      errorMessage.style.display = 'block';  // Hiển thị thông báo lỗi
+    }
+
+    convertBtn.addEventListener("click", async () => {
+      if (!selected) {
+        showErrorMessage("Vui lòng chọn loại chuyển đổi.");
+        return;
+      }
+      if (!currentFile) {
+        showErrorMessage("Vui lòng chọn file.");
+        return;
+      }
+
+      const ext = currentFile.name.split('.').pop().toLowerCase();
+      let valid = false;
+      if (selected === "image" && (ext === "jpg" || ext === "jpeg" || ext === "png")) valid = true;
+      else if (selected === "image-heic" && ext === "heic") valid = true;
+      if (!valid) {
+        showErrorMessage(`File không phù hợp! ${selected === "image-heic" ? "Cần file HEIC." : "Cần JPG/PNG."}`);
+        return;
+      }
+
+      if (currentFile.size > 50 * 1024 * 1024) {
+        showErrorMessage("❌ File >50MB! Chọn file nhỏ hơn để tránh crash.");
+        return;
+      }
+
+      errorMessage.style.display = 'none';  // Ẩn thông báo lỗi trước khi xử lý
+      convertBtn.disabled = true;
+      showProgress("⏳ Đang xử lý...", 10);
+      download.style.display = "none";
+
+      try {
+        if (selected === "image") {
+          showProgress("🔄 Đang chuyển ảnh...", 50);
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          const img = new Image();
+          img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            const isJpg = ext === "jpg" || ext === "jpeg";
+            const newType = isJpg ? "image/png" : "image/jpeg";
+            const newExt = isJpg ? "png" : "jpg";
+            canvas.toBlob(blob => {
+              const url = URL.createObjectURL(blob);
+              download.href = url;
+              download.download = `converted.${newExt}`;
+              download.style.display = "inline-block";
+              showProgress("✅ Hoàn tất!", 100);
+              convertBtn.disabled = false;
+            }, newType);
+          };
+          img.onerror = () => {
+            showErrorMessage("Lỗi load ảnh.");
+            convertBtn.disabled = false;
+          };
+          img.src = URL.createObjectURL(currentFile);
+        } else if (selected === "image-heic") {
+          showProgress("🔄 Đang chuyển HEIC sang JPG...", 50);
+          const { createFFmpeg, fetchFile } = FFmpeg;
+          const ffmpeg = createFFmpeg({ log: true });
+          await ffmpeg.load();
+          ffmpeg.FS('writeFile', 'input.heic', await fetchFile(currentFile));
+          await ffmpeg.run('-i', 'input.heic', 'output.jpg');
+          const data = ffmpeg.FS('readFile', 'output.jpg');
+          const blob = new Blob([data.buffer], { type: 'image/jpeg' });
+          const url = URL.createObjectURL(blob);
+          download.href = url;
+          download.download = 'converted.jpg';
+          download.style.display = "inline-block";
+          showProgress("✅ Hoàn tất chuyển đổi HEIC!", 100);
+          ffmpeg.exit();
+          convertBtn.disabled = false;
+        }
+      } catch (err) {
+        console.error("Lỗi chuyển đổi:", err);
+        showErrorMessage("❌ Lỗi xảy ra! Thử lại với file nhỏ hơn.");
+        convertBtn.disabled = false;
+        if (typeof ffmpeg !== 'undefined' && ffmpeg.exit) ffmpeg.exit();
+      }
+    });
 </script>
 </body>
 </html>
